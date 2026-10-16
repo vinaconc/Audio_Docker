@@ -55,8 +55,8 @@ RUN pip install --no-cache-dir \
 
 # 3. Instalar Torch y Torchaudio con soporte CUDA 13.0
 RUN pip install --no-cache-dir \
-    torch==2.9.0 \
-    torchaudio==2.9.0 \
+    torch==2.4.0 \
+    torchaudio==2.4.0 \
     --index-url https://pytorch.org
 
 # Definir el directorio de trabajo
