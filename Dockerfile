@@ -54,8 +54,7 @@ RUN pip install --no-cache-dir \
     kaggle
 
 # 3. Instalar Torch y Torchaudio con soporte CUDA 13.0
-RUN pip install --no-cache-dir torch==2.4.0 torchaudio==2.4.0 --index-url https://pytorch.org/whl/cu121
-
+RUN pip install --no-cache-dir torch==2.4.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu121
 # Definir el directorio de trabajo
 WORKDIR /workspace
 
