@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
+  # 🔥 Forzamos el nombre del contenedor estrictamente en minúsculas independientemente de GitHub
+  IMAGE_NAME: vinaconc/audio_docker 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
