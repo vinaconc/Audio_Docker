@@ -1,9 +1,9 @@
 {
-  "id": "vinaconc/WorkerAudioChord-v2",
-  "title": "WorkerAudioChordv-2",
-  "code_file": "__script__.ipynb",
+  "id": "workercrema/procesaraudio",
+  "title": "procesaraudio",
+  "code_file": "procesaraudio.ipynb",
   "language": "python",
-  "kernel_type": "script",
+  "kernel_type": "notebook",
   "is_private": "true",
   "enable_gpu": "true",
   "enable_internet": "true",
