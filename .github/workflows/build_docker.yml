@@ -28,7 +28,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Contraseña automática interna de GitHub
+          password: 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 # Contraseña automática interna de GitHub
 
       - name: 📦 Compilar y Subir Imagen Docker
         uses: docker/build-push-action@v6
