@@ -22,23 +22,29 @@ jobs:
         run: |
           pip install --no-cache-dir kaggle
 
-      - name: Checkout código
+      - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
         with:
           repository: vinaconc/chord-analyzer
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
-      # Nuevo paso para mover los archivos
-      - name: Mover archivos del repositorio
+      # 🛠️ UNIFICAMOS EN UN SOLO PASO LIMPIO Y SEGURO:
+      - name: Preparar Entorno para Kaggle
         run: |
-          cp -r repo_codigo/worker . 2>/dev/null || cp -r repo_codigo/app .
+          # 1. Copiamos absolutamente todo (app, worker, etc.) a la raíz
+          cp -r repo_codigo/* ./
           
-          # Pasamos el nombre del audio que envió R2 dentro de un archivo temporal
+          # 2. Borramos el contenedor temporal para no saturar
+          rm -rf repo_codigo
+          
+          # 3. Inyectamos de forma segura el JSON con el payload del audio
           echo '${{ toJson(github.event.client_payload) }}' > job.json
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
+
+ 
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
