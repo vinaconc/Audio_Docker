@@ -1,0 +1,49 @@
+name: Despertar GPU de Kaggle al llegar Audio de R2
+
+on:
+  # 🔥 Esto permite que Cloudflare R2 encienda este flujo mediante un Webhook (API)
+  repository_dispatch:
+    types: [nuevo_audio_r2]
+
+jobs:
+  ensamblar-y-lanzar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ 1. Clonar Repositorio de Infraestructura (Audio_Docker)
+        uses: actions/checkout@v4
+
+      - name: 🐍 2. Configurar Python Ligero
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 3. Instalar la API de Kaggle
+        run: |
+          pip install --no-cache-dir kaggle
+
+      - name: 🎙️ 4. Clonar tu Repositorio de Código (chord-analyzer)
+        env:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        run: |
+          # Clonamos tu código real usando tu token seguro
+          git clone https://$GIT_TOKEN@://github.com repo_codigo
+          
+          # 🛠️ TRUCO DE ENSAMBLAJE:
+          # Movemos la carpeta del código al lado de tu kernel-metadata.json
+          cp -r repo_codigo/worker . 2>/dev/null || cp -r repo_codigo/app .
+          
+          # Pasamos el nombre del audio que envió R2 dentro de un archivo temporal
+          echo '${{ toJson(github.event.client_payload) }}' > job.json
+
+      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+          
+          # La API toma el JSON, el código ensamblado y despierta la GPU con tu Docker en 1 minuto
+          kaggle kernels push -p .
