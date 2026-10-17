@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: vinaconc/chord-analyzer
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
       # Nuevo paso para mover los archivos
