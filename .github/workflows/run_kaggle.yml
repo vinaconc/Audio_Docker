@@ -24,7 +24,7 @@ jobs:
 
       - name: 🎙️ 4. Clonar tu Repositorio de Código (chord-analyzer)
         env:
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Clonamos tu código real usando tu token seguro
           git clone https://$GIT_TOKEN@://github.com repo_codigo
