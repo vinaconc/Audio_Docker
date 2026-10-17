@@ -22,14 +22,16 @@ jobs:
         run: |
           pip install --no-cache-dir kaggle
 
-      - name: Clonar Repositorio de Codigo
+      - name: Checkout código
         uses: actions/checkout@v4
         with:
           repository: vinaconc/chord-analyzer
           token: ${{ secrets.GITHUB_TOKEN }}
-          path: repo_codigo          
-          # 🛠️ TRUCO DE ENSAMBLAJE:
-          # Movemos la carpeta del código al lado de tu kernel-metadata.json
+          path: repo_codigo
+
+      # Nuevo paso para mover los archivos
+      - name: Mover archivos del repositorio
+        run: |
           cp -r repo_codigo/worker . 2>/dev/null || cp -r repo_codigo/app .
           
           # Pasamos el nombre del audio que envió R2 dentro de un archivo temporal
