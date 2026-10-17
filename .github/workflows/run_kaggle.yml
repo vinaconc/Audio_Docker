@@ -22,13 +22,12 @@ jobs:
         run: |
           pip install --no-cache-dir kaggle
 
-      - name: 🎙️ 4. Clonar tu Repositorio de Código (chord-analyzer)
-        env:
-          GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Clonamos tu código real usando tu token seguro
-          git clone https://$GIT_TOKEN@://github.com repo_codigo
-          
+      - name: Clonar Repositorio de Codigo
+        uses: actions/checkout@v4
+        with:
+          repository: vinaconc/chord-analyzer
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: repo_codigo          
           # 🛠️ TRUCO DE ENSAMBLAJE:
           # Movemos la carpeta del código al lado de tu kernel-metadata.json
           cp -r repo_codigo/worker . 2>/dev/null || cp -r repo_codigo/app .
