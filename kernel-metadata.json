@@ -1,0 +1,12 @@
+{
+  "id": "vinaconc/worker-audio-chord",
+  "title": "Worker Audio Chord",
+  "code_file": "worker/run.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "docker_image_pinning": "custom",
+  "custom_docker_image": "ghcr.io/vinaconc/audio_docker:latest"
+}
