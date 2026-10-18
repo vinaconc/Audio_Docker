@@ -33,30 +33,19 @@ jobs:
           cp -r repo_codigo/* ./
           rm -rf repo_codigo
           
-          # 2. INYECCIÓN DIRECTA: Metemos las variables en el propio script de Python
-          python -c "
-archivo = '${{ github.event.client_payload.archivo }}'
-r2_id = '${{ secrets.R2_ACCOUNT_ID }}'
-r2_key = '${{ secrets.R2_ACCESS_KEY_ID }}'
-r2_secret = '${{ secrets.R2_SECRET_ACCESS_KEY }}'
-
-with open('procesaraudio.py', 'r') as f:
-    code = f.read()
-
-injection = f'''
-archivo = \"{archivo}\"
-r2_account_id = \"{r2_id}\"
-r2_access_key = \"{r2_key}\"
-r2_secret_key = \"{r2_secret}\"
-'''
-# Inyectamos las variables justo después de los imports
-code = code.replace('import sys\n', 'import sys\n' + injection, 1)
-
-with open('procesaraudio.py', 'w') as f:
-    f.write(code)
-"
+          # 2. Inyectamos las credenciales usando echo y cat (Sin errores de YAML)
+          echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
+          echo "r2_account_id = '${{ secrets.R2_ACCOUNT_ID }}'" >> procesaraudio_final.py
+          echo "r2_access_key = '${{ secrets.R2_ACCESS_KEY_ID }}'" >> procesaraudio_final.py
+          echo "r2_secret_key = '${{ secrets.R2_SECRET_ACCESS_KEY }}'" >> procesaraudio_final.py
           
-          # 3. FORZAMOS LA CREACIÓN DEL METADATA (Con ID nuevo para evitar caché)
+          # 3. Pegamos tu código original debajo de las credenciales
+          cat procesaraudio.py >> procesaraudio_final.py
+          
+          # 4. Reemplazamos el archivo original por el que ya tiene las credenciales
+          mv procesaraudio_final.py procesaraudio.py
+          
+          # 5. Creamos el Metadata apuntando al Kernel NUEVO
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -74,11 +63,9 @@ with open('procesaraudio.py', 'w') as f:
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
           
-          # 4. VERIFICACIÓN EN LOGS
-          echo "=== Primeras líneas del script inyectado ==="
-          head -n 15 procesaraudio.py
-          echo "=== Metadata ==="
-          cat kernel-metadata.json
+          # 6. Verificación en los logs
+          echo "=== Primeras 5 líneas de procesaraudio.py ==="
+          head -n 5 procesaraudio.py
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
