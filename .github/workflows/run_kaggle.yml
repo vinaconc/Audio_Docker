@@ -35,13 +35,15 @@ jobs:
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
-          TMP_DATABASE_URL: ${{ secrets.DATABASE_URL }} # <-- El nuevo secreto
+          TMP_DATABASE_URL: ${{ secrets.DATABASE_URL }} # <-- EL NUEVO SECRETO
         run: |
+          # 1. Buscamos el archivo dinámicamente
           ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
           
+          # 2. Inyección de variables
           echo "import os" > procesaraudio_final.py
           
-          # Inyectamos la URL de Neon
+          # 🔥 Inyectamos la URL completa de Neon
           echo "os.environ['DATABASE_URL'] = '$TMP_DATABASE_URL'" >> procesaraudio_final.py
           
           echo "archivo = '${{ github.event.client_payload.archivo }}'" >> procesaraudio_final.py
@@ -51,10 +53,11 @@ jobs:
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
+          # 3. Ensamblamos el archivo final
           cat "$ARCHIVO" >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # Metadata (Sin GPU para que salga de la cola al instante)
+          # 4. Metadata (Puedes dejar enable_gpu en false si no tienes cuota)
           echo '{
             "id": "workercrema/procesaraudio",
             "title": "procesaraudio",
@@ -62,7 +65,7 @@ jobs:
             "language": "python",
             "kernel_type": "script",
             "is_private": true,
-            "enable_gpu": false,
+            "enable_gpu": true,
             "enable_internet": true,
             "keywords": [],
             "dataset_sources": [],
@@ -71,6 +74,8 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
+      
+      
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
