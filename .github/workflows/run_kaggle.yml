@@ -28,24 +28,32 @@ jobs:
           path: repo_codigo
 
       - name: Preparar Entorno para Kaggle
+        env:
+          # Usamos los nombres exactos de tus secretos
+          TMP_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          TMP_R2_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
+          TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
+          # Comprobación de seguridad
+          if [ -z "$TMP_R2_ENDPOINT" ]; then echo "❌ ERROR: Falta R2_ENDPOINT"; exit 1; fi
+          
           # 1. Copiamos todo a la raíz
           cp -r repo_codigo/* ./
           rm -rf repo_codigo
           
-          # 2. Inyectamos las credenciales usando echo y cat (Sin errores de YAML)
+          # 2. Inyectamos las variables con tus nombres
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
-          echo "r2_account_id = '${{ secrets.R2_ACCOUNT_ID }}'" >> procesaraudio_final.py
-          echo "r2_access_key = '${{ secrets.R2_ACCESS_KEY_ID }}'" >> procesaraudio_final.py
-          echo "r2_secret_key = '${{ secrets.R2_SECRET_ACCESS_KEY }}'" >> procesaraudio_final.py
+          echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
+          echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
+          echo "r2_secret_key = '$TMP_R2_SECRET'" >> procesaraudio_final.py
+          echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           
-          # 3. Pegamos tu código original debajo de las credenciales
+          # 3. Pegamos tu código original debajo
           cat procesaraudio.py >> procesaraudio_final.py
-          
-          # 4. Reemplazamos el archivo original por el que ya tiene las credenciales
           mv procesaraudio_final.py procesaraudio.py
           
-          # 5. Creamos el Metadata apuntando al Kernel NUEVO
+          # 4. Creamos el Metadata
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -63,7 +71,7 @@ jobs:
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
           
-          # 6. Verificación en los logs
+          # 5. Verificamos que se inyectó bien (sin mostrar los secretos reales)
           echo "=== Primeras 5 líneas de procesaraudio.py ==="
           head -n 5 procesaraudio.py
 
