@@ -59,10 +59,7 @@ jobs:
           cat job.json
           echo "=== Contenido de kernel-metadata.json ==="
           cat kernel-metadata.json
-          echo "=== Archivos en la raíz ==="
-          ls -la
-
-      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle (MODO DEBUG)
+      - name: 🚀 5. Sincronizar y Enviar a Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -71,11 +68,16 @@ jobs:
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          # Ejecuta el push con debug, verbose y guardando log en archivo
-          kaggle kernels push -p . --debug -v --log-file kaggle_push.log
+          # 1. Descargamos el metadata oficial que Kaggle tiene guardado
+          # (Usa tu ID real, por ejemplo vinaconc/procesaraudio)
+          kaggle kernels pull vinaconc/procesaraudio -m -p .
           
-          # Si falla, muestra el log completo en la consola de Actions
-          cat kaggle_push.log          
+          # 2. Sobrescribimos el archivo de código para asegurar que usamos el nuevo
+          # Usamos 'jq' para modificar solo el campo code_file sin romper el JSON
+          jq '.code_file = "procesaraudio.py"' kernel-metadata.json > temp.json && mv temp.json kernel-metadata.json
+          
+          # 3. Hacemos el push con el archivo oficial sincronizado
+          kaggle kernels push -p .
+          echo "=== Archivos en la raíz ==="
+          ls -la
 
- 
-          cat kernel-metadata.json
