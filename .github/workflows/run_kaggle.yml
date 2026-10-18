@@ -1,7 +1,6 @@
 name: Despertar GPU de Kaggle al llegar Audio de R2
 
 on:
-  # 🔥 Esto permite que Cloudflare R2 encienda este flujo mediante un Webhook (API)
   repository_dispatch:
     types: [nuevo_audio_r2]
 
@@ -19,8 +18,7 @@ jobs:
           python-version: '3.10'
 
       - name: 📦 3. Instalar la API de Kaggle
-        run: |
-          pip install --no-cache-dir kaggle
+        run: pip install --no-cache-dir kaggle
 
       - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
@@ -29,19 +27,19 @@ jobs:
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
-      # 🛠️ BLOQUE BLINDADO: Ejecuta todo bajo un único bloque 'run' limpio
       - name: Preparar Entorno para Kaggle
         run: |
-          # 1. Copiamos todo el código clonado a la raíz
           cp -r repo_codigo/* ./
-          
-          # 2. Borramos la subcarpeta temporal
           rm -rf repo_codigo
           
-          # 3. Inyectamos de forma segura el JSON con el payload del audio
+          # Inyectamos el payload (job.json)
           echo '${{ toJson(github.event.client_payload) }}' > job.json
           
-          # 4. Forzamos la sobreescritura del metadata correcto para evitar basura
+          # Verificamos qué contiene el job.json (para depurar)
+          echo "=== Contenido de job.json ==="
+          cat job.json
+          
+          # Metadata corregida (Sin comillas en los booleanos)
           cat << 'EOF' > kernel-metadata.json
           {
             "id": "vinaconc/procesaraudio",
@@ -49,9 +47,9 @@ jobs:
             "code_file": "procesaraudio.ipynb",
             "language": "python",
             "kernel_type": "notebook",
-            "is_private": "true",
-            "enable_gpu": "true",
-            "enable_internet": "true",
+            "is_private": true,
+            "enable_gpu": true,
+            "enable_internet": true,
             "keywords": [],
             "dataset_sources": [],
             "kernel_sources": [],
@@ -65,34 +63,12 @@ jobs:
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE TU ALMACENAMIENTO (R2):
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE TU BASE DE DATOS:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE ALERTAS TELEGRAM:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: |
+        run: |
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          # ⏳ FILTRO MAESTRO ANTI-COLISIÓN (Evita el Error 409 durmiendo el flujo 20 segundos)
-          printenv | grep -E "R2_|DB_|TELEGRAM_" > /dev/null && echo "📡 Inyectando secrets en el contenedor..."
-          log "⏳ Esperando alineación de servidores de Kaggle..."
-          sleep 20
+          echo "⏳ Esperando alineación de servidores de Kaggle..."
+          sleep 10
           
-          # La API toma el lote, el código y despierta tu Docker en segundos
-          kaggle kernels push -p .
-          chmod 600 ~/.kaggle/kaggle.json
-          
-          # La API toma el lote, el código y despierta tu Docker en segundos
           kaggle kernels push -p .
