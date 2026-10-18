@@ -35,10 +35,26 @@ jobs:
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
         run: |
-          # 1. Copiamos SOLO el script a la raíz
-          cp repo_codigo/procesaraudio.py ./
+          # 1. DEPURACIÓN: Veamos qué archivos se clonaron realmente
+          echo "=== CONTENIDO DEL REPOSITORIO CLONADO ==="
+          ls -la repo_codigo
+          echo "=========================================="
           
-          # 2. Inyectamos las variables (incluyendo el token de GitHub)
+          # 2. Buscamos el archivo procesaraudio.py en cualquier carpeta del repo
+          ARCHIVO_ENCONTRADO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
+          
+          if [ -z "$ARCHIVO_ENCONTRADO" ]; then
+            echo "❌ ERROR: No se encontró 'procesaraudio.py' en ninguna parte del repositorio."
+            echo "Asegúrate de que el archivo exista en GitHub y se llame exactamente así (todo en minúsculas)."
+            exit 1
+          fi
+          
+          echo "✅ Archivo encontrado en: $ARCHIVO_ENCONTRADO"
+          
+          # 3. Lo copiamos a la raíz
+          cp "$ARCHIVO_ENCONTRADO" ./
+          
+          # 4. Inyectamos las variables
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
@@ -49,7 +65,7 @@ jobs:
           cat procesaraudio.py >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 3. Metadata
+          # 5. Metadata
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -66,7 +82,6 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
-
       - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
