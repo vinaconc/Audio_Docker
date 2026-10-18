@@ -20,7 +20,6 @@ jobs:
       - name: 📦 3. Instalar la API de Kaggle
         run: pip install --no-cache-dir kaggle
 
-      # Volvemos a clonar el repositorio para obtener el archivo procesaraudio.py
       - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
         with:
@@ -67,9 +66,6 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
-          
-          echo "=== Archivos listos para enviar ==="
-          ls -la
 
       - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
