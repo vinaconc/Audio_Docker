@@ -1,6 +1,6 @@
 {
-  "id": "workercrema/procesaraudio",
-  "title": "procesaraudio",
+  "id": "workercrema/procesaraudio-produccion",
+  "title": "procesaraudio-produccion",
   "code_file": "procesaraudio.ipynb",
   "language": "python",
   "kernel_type": "notebook",
