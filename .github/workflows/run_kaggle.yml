@@ -29,24 +29,20 @@ jobs:
 
       - name: Preparar Entorno para Kaggle
         run: |
+          # 1. Copiamos todo el código clonado a la raíz
           cp -r repo_codigo/* ./
           rm -rf repo_codigo
           
-          # Inyectamos el payload (job.json)
+          # 2. Inyectamos el JSON con el payload del audio
           echo '${{ toJson(github.event.client_payload) }}' > job.json
           
-          # Verificamos qué contiene el job.json (para depurar)
-          echo "=== Contenido de job.json ==="
-          cat job.json
-          
-          # Metadata corregida (Sin comillas en los booleanos)
-          cat << 'EOF' > kernel-metadata.json
-          {
+          # 3. Generamos el kernel-metadata.json de forma segura (sin errores de YAML)
+          echo '{
             "id": "vinaconc/procesaraudio",
             "title": "procesaraudio",
-            "code_file": "procesaraudio.ipynb",
+            "code_file": "procesaraudio.py",
             "language": "python",
-            "kernel_type": "notebook",
+            "kernel_type": "script",
             "is_private": true,
             "enable_gpu": true,
             "enable_internet": true,
@@ -56,8 +52,15 @@ jobs:
             "competition_sources": [],
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
-          }
-          EOF
+          }' > kernel-metadata.json
+          
+          # 4. Verificamos que todo esté correcto en los logs
+          echo "=== Contenido de job.json ==="
+          cat job.json
+          echo "=== Contenido de kernel-metadata.json ==="
+          cat kernel-metadata.json
+          echo "=== Archivos en la raíz ==="
+          ls -la
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
@@ -68,7 +71,5 @@ jobs:
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          echo "⏳ Esperando alineación de servidores de Kaggle..."
           sleep 10
-          
           kaggle kernels push -p .
