@@ -80,9 +80,18 @@ jobs:
           # 🔐 INYECCIÓN DE CONTROL DE ALERTAS TELEGRAM:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
+      run: |
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+          
+          # ⏳ FILTRO MAESTRO ANTI-COLISIÓN (Evita el Error 409 durmiendo el flujo 20 segundos)
+          printenv | grep -E "R2_|DB_|TELEGRAM_" > /dev/null && echo "📡 Inyectando secrets en el contenedor..."
+          log "⏳ Esperando alineación de servidores de Kaggle..."
+          sleep 20
+          
+          # La API toma el lote, el código y despierta tu Docker en segundos
+          kaggle kernels push -p .
           chmod 600 ~/.kaggle/kaggle.json
           
           # La API toma el lote, el código y despierta tu Docker en segundos
