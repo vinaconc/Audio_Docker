@@ -34,33 +34,36 @@ jobs:
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
+          # Añadimos los secretos de la Base de Datos
+          TMP_DB_HOST: ${{ secrets.DB_HOST }}
+          TMP_DB_NAME: ${{ secrets.DB_NAME }}
+          TMP_DB_USER: ${{ secrets.DB_USER }}
+          TMP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          # 1. BUSCAMOS EL ARCHIVO (por si está en otra carpeta o se llama distinto)
-          echo "=== BUSCANDO EL SCRIPT EN EL REPOSITORIO ==="
-          find repo_codigo -name "procesaraudio*"
-          
-          # Intentamos encontrarlo con .py, si no, con .ipynb
+          # 1. Buscamos el archivo dinámicamente
           ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
           if [ -z "$ARCHIVO" ]; then
             ARCHIVO=$(find repo_codigo -name "procesaraudio.ipynb" | head -n 1)
           fi
           
-          if [ -z "$ARCHIVO" ]; then
-            echo "❌ ERROR: No se encontró ningún archivo llamado 'procesaraudio' en el repositorio."
-            exit 1
-          fi
+          # 2. Inyectamos las variables de R2 y las de la Base de Datos
+          # Nota: Usamos os.environ para que app.models las lea automáticamente
+          echo "import os" > procesaraudio_final.py
+          echo "os.environ['DB_HOST'] = '$TMP_DB_HOST'" >> procesaraudio_final.py
+          echo "os.environ['DB_NAME'] = '$TMP_DB_NAME'" >> procesaraudio_final.py
+          echo "os.environ['DB_USER'] = '$TMP_DB_USER'" >> procesaraudio_final.py
+          echo "os.environ['DB_PASSWORD'] = '$TMP_DB_PASSWORD'" >> procesaraudio_final.py
+          echo "os.environ['DB_PORT'] = '5432'" >> procesaraudio_final.py
           
-          echo "✅ Archivo encontrado en: $ARCHIVO"
-          
-          # 2. Inyectamos las variables
-          echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
+          # Inyectamos las variables de R2 y GitHub
+          echo "archivo = '${{ github.event.client_payload.archivo }}'" >> procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
           echo "r2_secret_key = '$TMP_R2_SECRET'" >> procesaraudio_final.py
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
-          # 3. Pegamos el código encontrado
+          # 3. Pegamos el código de tu script debajo
           cat "$ARCHIVO" >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
