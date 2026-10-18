@@ -70,7 +70,7 @@ jobs:
           
           # 1. Descargamos el metadata oficial que Kaggle tiene guardado
           # (Usa tu ID real, por ejemplo vinaconc/procesaraudio)
-          kaggle kernels pull vinaconc/procesaraudio -m -p .
+          kaggle kernels pull workercrema/procesaraudio -m -p .
           
           # 2. Sobrescribimos el archivo de código para asegurar que usamos el nuevo
           # Usamos 'jq' para modificar solo el campo code_file sin romper el JSON
