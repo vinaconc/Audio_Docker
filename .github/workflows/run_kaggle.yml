@@ -20,12 +20,8 @@ jobs:
       - name: 📦 3. Instalar la API de Kaggle
         run: pip install --no-cache-dir kaggle
 
-      - name: Clonar Repositorio de Codigo
-        uses: actions/checkout@v4
-        with:
-          repository: vinaconc/chord-analyzer
-          token: ${{ secrets.PAT_CHORD_ANALYZER }}
-          path: repo_codigo
+      # Eliminamos la clonación del repositorio chord-analyzer porque
+      # ahora Kaggle lo descargará directamente desde la web en 2 segundos.
 
       - name: Preparar Entorno para Kaggle
         env:
@@ -33,39 +29,23 @@ jobs:
           TMP_R2_KEY: ${{ secrets.R2_ACCESS_KEY }}
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }} # Token para descargar el repo desde Kaggle
         run: |
-          # Comprobación de seguridad
-          if [ -z "$TMP_R2_ENDPOINT" ]; then echo "❌ ERROR: Falta R2_ENDPOINT"; exit 1; fi
-          
-          # 1. Copiamos el script a la raíz
+          # 1. Copiamos SOLO el script (que ahora es más inteligente) a la raíz
           cp repo_codigo/procesaraudio.py ./
           
-          # 2. Convertimos la carpeta 'app' (o 'worker') en un archivo de texto Base64
-          if [ -d "repo_codigo/app" ]; then
-            tar -czf - -C repo_codigo app | base64 > app_b64.txt
-            echo "✅ Carpeta 'app' empaquetada."
-          elif [ -d "repo_codigo/worker" ]; then
-            tar -czf - -C repo_codigo worker | base64 > app_b64.txt
-            echo "✅ Carpeta 'worker' empaquetada."
-          else
-            echo "❌ ERROR: No se encontró la carpeta 'app' ni 'worker' en tu repositorio."
-            exit 1
-          fi
-          
-          # 3. Borramos la carpeta clonada
-          rm -rf repo_codigo
-          
-          # 4. Inyectamos las variables
+          # 2. Inyectamos las variables en el script
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
           echo "r2_secret_key = '$TMP_R2_SECRET'" >> procesaraudio_final.py
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
+          echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
           cat procesaraudio.py >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 5. Metadata
+          # 3. Metadata (Usamos el modo "script")
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -82,11 +62,8 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
-          
-          echo "=== Archivos listos para enviar ==="
-          ls -la
 
-      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
+      - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
