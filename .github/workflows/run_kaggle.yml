@@ -35,26 +35,24 @@ jobs:
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
         run: |
-          # 1. DEPURACIÓN: Veamos qué archivos se clonaron realmente
-          echo "=== CONTENIDO DEL REPOSITORIO CLONADO ==="
-          ls -la repo_codigo
-          echo "=========================================="
+          # 1. BUSCAMOS EL ARCHIVO (por si está en otra carpeta o se llama distinto)
+          echo "=== BUSCANDO EL SCRIPT EN EL REPOSITORIO ==="
+          find repo_codigo -name "procesaraudio*"
           
-          # 2. Buscamos el archivo procesaraudio.py en cualquier carpeta del repo
-          ARCHIVO_ENCONTRADO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
+          # Intentamos encontrarlo con .py, si no, con .ipynb
+          ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
+          if [ -z "$ARCHIVO" ]; then
+            ARCHIVO=$(find repo_codigo -name "procesaraudio.ipynb" | head -n 1)
+          fi
           
-          if [ -z "$ARCHIVO_ENCONTRADO" ]; then
-            echo "❌ ERROR: No se encontró 'procesaraudio.py' en ninguna parte del repositorio."
-            echo "Asegúrate de que el archivo exista en GitHub y se llame exactamente así (todo en minúsculas)."
+          if [ -z "$ARCHIVO" ]; then
+            echo "❌ ERROR: No se encontró ningún archivo llamado 'procesaraudio' en el repositorio."
             exit 1
           fi
           
-          echo "✅ Archivo encontrado en: $ARCHIVO_ENCONTRADO"
+          echo "✅ Archivo encontrado en: $ARCHIVO"
           
-          # 3. Lo copiamos a la raíz
-          cp "$ARCHIVO_ENCONTRADO" ./
-          
-          # 4. Inyectamos las variables
+          # 2. Inyectamos las variables
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
@@ -62,10 +60,11 @@ jobs:
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
-          cat procesaraudio.py >> procesaraudio_final.py
+          # 3. Pegamos el código encontrado
+          cat "$ARCHIVO" >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 5. Metadata
+          # 4. Creamos el Metadata
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -82,6 +81,7 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
+
       - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
