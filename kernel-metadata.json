@@ -1,6 +1,6 @@
 {
-  "id": "vinaconc/procesaraudio-produccion",
-  "title": "procesaraudio-produccion",
+  "id": "vinaconc/procesaraudio",
+  "title": "procesaraudio",
   "code_file": "procesaraudio.ipynb",
   "language": "python",
   "kernel_type": "notebook",
