@@ -29,7 +29,6 @@ jobs:
 
       - name: Preparar Entorno para Kaggle
         env:
-          # Usamos los nombres exactos de tus secretos
           TMP_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           TMP_R2_KEY: ${{ secrets.R2_ACCESS_KEY }}
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
@@ -38,22 +37,29 @@ jobs:
           # Comprobación de seguridad
           if [ -z "$TMP_R2_ENDPOINT" ]; then echo "❌ ERROR: Falta R2_ENDPOINT"; exit 1; fi
           
-          # 1. Copiamos todo a la raíz
-          cp -r repo_codigo/* ./
+          # 1. Copiamos SOLO el script a la raíz
+          cp repo_codigo/procesaraudio.py ./
+          
+          # 2. COMPRIMIMOS la carpeta 'app' del repositorio clonado en un .zip
+          # Esto asegura que Kaggle la suba como un solo archivo
+          cd repo_codigo
+          zip -r ../app.zip app
+          cd ..
+          
+          # 3. Borramos la carpeta clonada para no dejar basura
           rm -rf repo_codigo
           
-          # 2. Inyectamos las variables con tus nombres
+          # 4. Inyectamos las variables en el script principal
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
           echo "r2_secret_key = '$TMP_R2_SECRET'" >> procesaraudio_final.py
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           
-          # 3. Pegamos tu código original debajo
           cat procesaraudio.py >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 4. Creamos el Metadata
+          # 5. Creamos el Metadata
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -71,9 +77,8 @@ jobs:
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
           
-          # 5. Verificamos que se inyectó bien (sin mostrar los secretos reales)
-          echo "=== Primeras 5 líneas de procesaraudio.py ==="
-          head -n 5 procesaraudio.py
+          echo "=== Archivos listos para enviar a Kaggle ==="
+          ls -la
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
