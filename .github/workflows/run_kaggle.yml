@@ -30,21 +30,37 @@ jobs:
           path: repo_codigo
 
       # 🛠️ UNIFICAMOS EN UN SOLO PASO LIMPIO Y SEGURO:
+      # 🛠️ BLOQUE BLINDADO: Fuerza la creación del metadata correcto en la raíz
       - name: Preparar Entorno para Kaggle
         run: |
-          # 1. Copiamos absolutamente todo (app, worker, etc.) a la raíz
+          # 1. Copiamos todo el código clonado a la raíz
           cp -r repo_codigo/* ./
           
-          # 2. Borramos el contenedor temporal para no saturar
+          # 2. Borramos la subcarpeta temporal
           rm -rf repo_codigo
           
           # 3. Inyectamos de forma segura el JSON con el payload del audio
           echo '${{ toJson(github.event.client_payload) }}' > job.json
-
-      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
-        env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+          
+          # 4. BLINDAJE EXTRA: Forzamos la sobreescritura del metadata correcto para que Kaggle no lea basura
+          cat << 'EOF' > kernel-metadata.json
+          {
+            "id": "vinaconc/procesaraudio",
+            "title": "procesaraudio",
+            "code_file": "procesaraudio.ipynb",
+            "language": "python",
+            "kernel_type": "notebook",
+            "is_private": "true",
+            "enable_gpu": "true",
+            "enable_internet": "true",
+            "keywords": [],
+            "dataset_sources": [],
+            "kernel_sources": [],
+            "competition_sources": [],
+            "image_type": "custom",
+            "image_id": "ghcr.io/vinaconc/audio_docker:latest"
+          }
+          EOF
           
           # 🔐 INYECCIÓN DE CONTROL DE TU ALMACENAMIENTO (R2):
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
