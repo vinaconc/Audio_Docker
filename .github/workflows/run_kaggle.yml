@@ -43,14 +43,27 @@ jobs:
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
-
- 
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+          
+          # 🔐 INYECCIÓN DE CONTROL DE TU ALMACENAMIENTO (R2):
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          
+          # 🔐 INYECCIÓN DE CONTROL DE TU BASE DE DATOS:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          
+          # 🔐 INYECCIÓN DE CONTROL DE ALERTAS TELEGRAM:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          # La API toma el JSON, el código ensamblado y despierta la GPU con tu Docker en 1 minuto
+          # La API toma el lote, el código y despierta tu Docker en segundos
           kaggle kernels push -p .
