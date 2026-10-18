@@ -38,8 +38,8 @@ jobs:
           
           # 3. Generamos el kernel-metadata.json de forma segura (sin errores de YAML)
           echo '{
-            "id": "vinaconc/procesaraudio",
-            "title": "procesaraudio",
+            "id": "vinaconc/worker-audio-prod-'$(date +%s)'",
+            "title": "worker-audio-prod-'$(date +%s)'",
             "code_file": "procesaraudio.py",
             "language": "python",
             "kernel_type": "script",
@@ -62,7 +62,7 @@ jobs:
           echo "=== Archivos en la raíz ==="
           ls -la
 
-      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
+      - name: Sincronizar metadatos desde Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -70,6 +70,6 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-          
-          sleep 10
-          kaggle kernels push -p .
+          kaggle kernels pull vinaconc/procesaraudio -m -p .
+          echo "=== Metadata sincronizado ==="
+          cat kernel-metadata.json
