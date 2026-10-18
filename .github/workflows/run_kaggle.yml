@@ -62,7 +62,7 @@ jobs:
           echo "=== Archivos en la raíz ==="
           ls -la
 
-      - name: Sincronizar metadatos desde Kaggle
+      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle (MODO DEBUG)
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -70,6 +70,12 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-          kaggle kernels pull vinaconc/procesaraudio -m -p .
-          echo "=== Metadata sincronizado ==="
+          
+          # Ejecuta el push con debug, verbose y guardando log en archivo
+          kaggle kernels push -p . --debug -v --log-file kaggle_push.log
+          
+          # Si falla, muestra el log completo en la consola de Actions
+          cat kaggle_push.log          
+
+ 
           cat kernel-metadata.json
