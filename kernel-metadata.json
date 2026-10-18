@@ -1,16 +1,20 @@
-{
-  "id": "workercrema/procesaraudio-prod-2026",
-  "title": "procesaraudio-prod-2026",
-  "code_file": "procesaraudio.ipynb",
-  "language": "python",
-  "kernel_type": "notebook",
-  "is_private": true,
-  "enable_gpu": true,
-  "enable_internet": true,
-  "keywords": [],
-  "dataset_sources": [],
-  "kernel_sources": [],
-  "competition_sources": [],
-  "image_type": "custom",
-  "image_id": "ghcr.io/vinaconc/audio_docker:latest"
-}
+          # 🛠️ PLANO ACTUALIZADO PARA SCRIPT PURO (.py)
+          cat << 'EOF' > kernel-metadata.json
+          {
+            "id": "workercrema/procesaraudio",
+            "title": "procesaraudio",
+            "code_file": "procesaraudio.py",
+            "language": "python",
+            "kernel_type": "script",
+            "is_private": true,
+            "enable_gpu": true,
+            "enable_internet": true,
+            "keywords": [],
+            "dataset_sources": [],
+            "kernel_sources": [],
+            "competition_sources": [],
+            "image_type": "custom",
+            "image_id": "ghcr.io/vinaconc/audio_docker:latest"
+          }
+          EOF
+
