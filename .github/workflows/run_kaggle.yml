@@ -1,6 +1,7 @@
 name: Despertar GPU de Kaggle al llegar Audio de R2
 
 on:
+  # 🔥 Esto permite que Cloudflare R2 encienda este flujo mediante un Webhook (API)
   repository_dispatch:
     types: [nuevo_audio_r2]
 
@@ -18,7 +19,8 @@ jobs:
           python-version: '3.10'
 
       - name: 📦 3. Instalar la API de Kaggle
-        run: pip install --no-cache-dir kaggle
+        run: |
+          pip install --no-cache-dir kaggle
 
       - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
@@ -27,6 +29,7 @@ jobs:
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
+      # 🛠️ BLOQUE BLINDADO ABSOLUTO: Estampa los secretos de forma física en el archivo para evitar borrados
       - name: Preparar Entorno para Kaggle
         env:
           TMP_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
@@ -39,14 +42,22 @@ jobs:
           TMP_DB_USER: ${{ secrets.DB_USER }}
           TMP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
+          # 1. Buscamos el archivo dinámicamente
           ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
+          if [ -z "$ARCHIVO" ]; then
+            ARCHIVO=$(find repo_codigo -name "procesaraudio.ipynb" | head -n 1)
+          fi
           
+          # 2. INYECCIÓN FÍSICA INMUTABLE: Escribimos las credenciales directo en la memoria RAM de Python
           echo "import os" > procesaraudio_final.py
+          echo "os.environ['DB_HOST'] = '$TMP_DB_HOST'" >> procesaraudio_final.py
+          echo "os.environ['DB_NAME'] = '$TMP_DB_NAME'" >> procesaraudio_final.py
+          echo "os.environ['DB_USER'] = '$TMP_DB_USER'" >> procesaraudio_final.py
+          echo "os.environ['DB_PASSWORD'] = '$TMP_DB_PASSWORD'" >> procesaraudio_final.py
+          echo "os.environ['DB_PORT'] = '5432'" >> procesaraudio_final.py
+          echo "os.environ['DATABASE_URL'] = 'postgresql+psycopg2://$TMP_DB_USER:$TMP_DB_PASSWORD@$TMP_DB_HOST:5432/$TMP_DB_NAME'" >> procesaraudio_final.py
           
-          # 🔥 ARMAMOS LA DATABASE_URL COMPLETA AQUÍ
-          TMP_DATABASE_URL="postgresql://$TMP_DB_USER:$TMP_DB_PASSWORD@$TMP_DB_HOST:5432/$TMP_DB_NAME"
-          echo "os.environ['DATABASE_URL'] = '$TMP_DATABASE_URL'" >> procesaraudio_final.py
-          
+          # Inyectamos el payload y credenciales de R2
           echo "archivo = '${{ github.event.client_payload.archivo }}'" >> procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
@@ -54,12 +65,14 @@ jobs:
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
+          # 3. Ensamblamos el archivo final libre de reescrituras
           cat "$ARCHIVO" >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
+          # 4. Creamos el Metadata apuntando a tu slug oficial
           echo '{
-            "id": "workercrema/audio-worker-prod",
-            "title": "audio-worker-prod",
+            "id": "workercrema/procesaraudio",
+            "title": "procesaraudio",
             "code_file": "procesaraudio.py",
             "language": "python",
             "kernel_type": "script",
@@ -73,8 +86,8 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
-      
-      - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
+
+      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -83,4 +96,5 @@ jobs:
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
+          # 🚀 Empujamos tus scripts reales de forma directa y limpia
           kaggle kernels push -p .
