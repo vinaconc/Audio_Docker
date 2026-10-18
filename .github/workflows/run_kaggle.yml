@@ -33,13 +33,33 @@ jobs:
           cp -r repo_codigo/* ./
           rm -rf repo_codigo
           
-          # 2. Creamos el job.json
-          echo '${{ toJson(github.event.client_payload) }}' > job.json
+          # 2. INYECCIÓN DIRECTA: Metemos las variables en el propio script de Python
+          python -c "
+archivo = '${{ github.event.client_payload.archivo }}'
+r2_id = '${{ secrets.R2_ACCOUNT_ID }}'
+r2_key = '${{ secrets.R2_ACCESS_KEY_ID }}'
+r2_secret = '${{ secrets.R2_SECRET_ACCESS_KEY }}'
+
+with open('procesaraudio.py', 'r') as f:
+    code = f.read()
+
+injection = f'''
+archivo = \"{archivo}\"
+r2_account_id = \"{r2_id}\"
+r2_access_key = \"{r2_key}\"
+r2_secret_key = \"{r2_secret}\"
+'''
+# Inyectamos las variables justo después de los imports
+code = code.replace('import sys\n', 'import sys\n' + injection, 1)
+
+with open('procesaraudio.py', 'w') as f:
+    f.write(code)
+"
           
-          # 3. FORZAMOS LA CREACIÓN DEL METADATA (Apuntando al .py y al usuario correcto)
+          # 3. FORZAMOS LA CREACIÓN DEL METADATA (Con ID nuevo para evitar caché)
           echo '{
-            "id": "workercrema/procesaraudio",
-            "title": "procesaraudio",
+            "id": "workercrema/audio-worker-prod",
+            "title": "audio-worker-prod",
             "code_file": "procesaraudio.py",
             "language": "python",
             "kernel_type": "script",
@@ -54,20 +74,19 @@ jobs:
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
           
-          # 4. VERIFICACIÓN CRÍTICA: ¿Existe el archivo .py en la raíz?
-          echo "=== Archivos en la carpeta ==="
-          ls -la
-          echo "=== Contenido del Metadata generado ==="
+          # 4. VERIFICACIÓN EN LOGS
+          echo "=== Primeras líneas del script inyectado ==="
+          head -n 15 procesaraudio.py
+          echo "=== Metadata ==="
           cat kernel-metadata.json
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }} # Asegúrate de que este secreto sea 'workercrema'
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          # Hacemos el push directamente (SIN hacer 'kaggle kernels pull' para no sobrescribir el .py)
           kaggle kernels push -p .
