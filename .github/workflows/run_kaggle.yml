@@ -35,29 +35,15 @@ jobs:
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
-          TMP_DB_HOST: ${{ secrets.DB_HOST }}
-          TMP_DB_NAME: ${{ secrets.DB_NAME }}
-          TMP_DB_USER: ${{ secrets.DB_USER }}
-          TMP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TMP_DATABASE_URL: ${{ secrets.DATABASE_URL }} # <-- El nuevo secreto
         run: |
-          # 1. Buscamos el archivo dinámicamente
           ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
-          if [ -z "$ARCHIVO" ]; then
-            ARCHIVO=$(find repo_codigo -name "procesaraudio.ipynb" | head -n 1)
-          fi
           
-          # 2. INYECCIÓN FÍSICA INMUTABLE
           echo "import os" > procesaraudio_final.py
-          echo "os.environ['DB_HOST'] = '$TMP_DB_HOST'" >> procesaraudio_final.py
-          echo "os.environ['DB_NAME'] = '$TMP_DB_NAME'" >> procesaraudio_final.py
-          echo "os.environ['DB_USER'] = '$TMP_DB_USER'" >> procesaraudio_final.py
-          echo "os.environ['DB_PASSWORD'] = '$TMP_DB_PASSWORD'" >> procesaraudio_final.py
-          echo "os.environ['DB_PORT'] = '5432'" >> procesaraudio_final.py
           
-          # 🔥 AQUÍ ESTÁ EL CAMBIO (Añadido ?sslmode=require al final)
-          echo "os.environ['DATABASE_URL'] = 'postgresql+psycopg2://$TMP_DB_USER:$TMP_DB_PASSWORD@$TMP_DB_HOST:5432/$TMP_DB_NAME?sslmode=require'" >> procesaraudio_final.py
+          # Inyectamos la URL de Neon
+          echo "os.environ['DATABASE_URL'] = '$TMP_DATABASE_URL'" >> procesaraudio_final.py
           
-          # Inyectamos el payload y credenciales de R2
           echo "archivo = '${{ github.event.client_payload.archivo }}'" >> procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
@@ -65,11 +51,10 @@ jobs:
           echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
           echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
           
-          # 3. Ensamblamos el archivo final
           cat "$ARCHIVO" >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 4. Creamos el Metadata
+          # Metadata (Sin GPU para que salga de la cola al instante)
           echo '{
             "id": "workercrema/procesaraudio",
             "title": "procesaraudio",
@@ -77,7 +62,7 @@ jobs:
             "language": "python",
             "kernel_type": "script",
             "is_private": true,
-            "enable_gpu": true,
+            "enable_gpu": false,
             "enable_internet": true,
             "keywords": [],
             "dataset_sources": [],
@@ -86,7 +71,6 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
-
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
