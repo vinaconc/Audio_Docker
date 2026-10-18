@@ -20,8 +20,13 @@ jobs:
       - name: 📦 3. Instalar la API de Kaggle
         run: pip install --no-cache-dir kaggle
 
-      # Eliminamos la clonación del repositorio chord-analyzer porque
-      # ahora Kaggle lo descargará directamente desde la web en 2 segundos.
+      # Volvemos a clonar el repositorio para obtener el archivo procesaraudio.py
+      - name: Clonar Repositorio de Codigo
+        uses: actions/checkout@v4
+        with:
+          repository: vinaconc/chord-analyzer
+          token: ${{ secrets.PAT_CHORD_ANALYZER }}
+          path: repo_codigo
 
       - name: Preparar Entorno para Kaggle
         env:
@@ -29,12 +34,12 @@ jobs:
           TMP_R2_KEY: ${{ secrets.R2_ACCESS_KEY }}
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }} # Token para descargar el repo desde Kaggle
+          TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
         run: |
-          # 1. Copiamos SOLO el script (que ahora es más inteligente) a la raíz
+          # 1. Copiamos SOLO el script a la raíz
           cp repo_codigo/procesaraudio.py ./
           
-          # 2. Inyectamos las variables en el script
+          # 2. Inyectamos las variables (incluyendo el token de GitHub)
           echo "archivo = '${{ github.event.client_payload.archivo }}'" > procesaraudio_final.py
           echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
           echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
@@ -45,7 +50,7 @@ jobs:
           cat procesaraudio.py >> procesaraudio_final.py
           mv procesaraudio_final.py procesaraudio.py
           
-          # 3. Metadata (Usamos el modo "script")
+          # 3. Metadata
           echo '{
             "id": "workercrema/audio-worker-prod",
             "title": "audio-worker-prod",
@@ -62,6 +67,9 @@ jobs:
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
           }' > kernel-metadata.json
+          
+          echo "=== Archivos listos para enviar ==="
+          ls -la
 
       - name: 🚀 4. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
