@@ -1,7 +1,6 @@
 name: Despertar GPU de Kaggle al llegar Audio de R2
 
 on:
-  # 🔥 Esto permite que Cloudflare R2 encienda este flujo mediante un Webhook (API)
   repository_dispatch:
     types: [nuevo_audio_r2]
 
@@ -19,8 +18,7 @@ jobs:
           python-version: '3.10'
 
       - name: 📦 3. Instalar la API de Kaggle
-        run: |
-          pip install --no-cache-dir kaggle
+        run: pip install --no-cache-dir kaggle
 
       - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
@@ -29,26 +27,22 @@ jobs:
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
-      # 🛠️ BLOQUE BLINDADO: Ejecuta todo bajo un único bloque 'run' limpio
       - name: Preparar Entorno para Kaggle
         run: |
-          # 1. Copiamos todo el código clonado a la raíz
+          # 1. Copiamos todo a la raíz
           cp -r repo_codigo/* ./
-          
-          # 2. Borramos la subcarpeta temporal
           rm -rf repo_codigo
           
-          # 3. Inyectamos de forma segura el JSON con el payload del audio
+          # 2. Creamos el job.json
           echo '${{ toJson(github.event.client_payload) }}' > job.json
           
-          # 4. Forzamos la sobreescritura del metadata correcto para evitar basura
-          cat << 'EOF' > kernel-metadata.json
-          {
+          # 3. FORZAMOS LA CREACIÓN DEL METADATA (Apuntando al .py y al usuario correcto)
+          echo '{
             "id": "workercrema/procesaraudio",
             "title": "procesaraudio",
-            "code_file": "procesaraudio.ipynb",
+            "code_file": "procesaraudio.py",
             "language": "python",
-            "kernel_type": "notebook",
+            "kernel_type": "script",
             "is_private": true,
             "enable_gpu": true,
             "enable_internet": true,
@@ -58,47 +52,22 @@ jobs:
             "competition_sources": [],
             "image_type": "custom",
             "image_id": "ghcr.io/vinaconc/audio_docker:latest"
-          }
-          EOF
+          }' > kernel-metadata.json
+          
+          # 4. VERIFICACIÓN CRÍTICA: ¿Existe el archivo .py en la raíz?
+          echo "=== Archivos en la carpeta ==="
+          ls -la
+          echo "=== Contenido del Metadata generado ==="
+          cat kernel-metadata.json
 
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }} # Asegúrate de que este secreto sea 'workercrema'
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE TU ALMACENAMIENTO (R2):
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE TU BASE DE DATOS:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          
-          # 🔐 INYECCIÓN DE CONTROL DE ALERTAS TELEGRAM:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
           
-          # 🛠️ INYECTOR DE INICIALIZACIÓN REMOTA ALINEADO (Usa estrictamente el slug real de tu API)
-          if ! kaggle kernels status workercrema/procesaraudio >/dev/null 2>&1; then
-            echo "🆕 El cuaderno no existe en Kaggle. Inicializando espacio de trabajo..."
-            echo 'print("Inicializando...")' > procesaraudio.py
-            sed -i 's/"code_file": "procesaraudio.ipynb"/"code_file": "procesaraudio.py"/g' kernel-metadata.json
-            sed -i 's/"kernel_type": "notebook"/"kernel_type": "script"/g' kernel-metadata.json
-            kaggle kernels push -p .
-            sleep 5
-            # Restauramos el plano maestro para tus archivos reales .ipynb
-            sed -i 's/"code_file": "procesaraudio.py"/"code_file": "procesaraudio.ipynb"/g' kernel-metadata.json
-            sed -i 's/"kernel_type": "script"/"kernel_type": "notebook"/g' kernel-metadata.json
-            rm -f procesaraudio.py
-          fi
-          
-          # 🚀 Empujamos tus scripts reales y encendemos tu Docker optimizado al instante
-          echo "📡 Desplegando contenedor Docker y scripts en la GPU de Kaggle..."
+          # Hacemos el push directamente (SIN hacer 'kaggle kernels pull' para no sobrescribir el .py)
           kaggle kernels push -p .
