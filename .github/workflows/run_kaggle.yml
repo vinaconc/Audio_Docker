@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ 1. Clonar Repositorio de Infraestructura (Audio_Docker)
+      - name: ⬇️ 1. Clonar Repositorio de Infraestructura
         uses: actions/checkout@v4
 
-      - name: 🐍 2. Configurar Python Ligero
+      - name: 🐍 2. Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -20,14 +20,14 @@ jobs:
       - name: 📦 3. Instalar la API de Kaggle
         run: pip install --no-cache-dir kaggle
 
-      - name: Clonar Repositorio de Codigo
+      - name: Clonar Repositorio de Código (chord-analyzer)
         uses: actions/checkout@v4
         with:
           repository: vinaconc/chord-analyzer
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
-      - name: Preparar Entorno e Inyectar Secretos
+      - name: Preparar Notebook e Inyectar Secretos
         env:
           TMP_DB_USER: ${{ secrets.DB_USER }}
           TMP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -41,10 +41,10 @@ jobs:
           TMP_TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
         run: |
-          # 1. Copiamos el Notebook
+          # 1. Copiamos tu Notebook al directorio de trabajo
           cp repo_codigo/setup_kaggle.ipynb ./procesaraudio.ipynb
           
-          # 2. Inyectamos las variables usando un script sencillo (Sin errores de comillas)
+          # 2. Inyectamos los secretos en la primera celda usando Python
           cat << 'PYEOF' > inject_vars.py
 import json
 import os
@@ -52,7 +52,7 @@ import os
 with open('procesaraudio.ipynb', 'r') as f:
     nb = json.load(f)
 
-# Creamos la celda leyendo las variables del entorno
+# Creamos la celda leyendo las variables del entorno de GitHub
 codigo_celda = "import os\n"
 variables = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_NAME", "GIT_TOKEN", "R2_ENDPOINT", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]
 
@@ -60,7 +60,7 @@ for var in variables:
     valor = os.environ.get(f"TMP_{var}", "")
     codigo_celda += f"os.environ['{var}'] = '{valor}'\n"
 
-# Insertamos la celda en el Notebook
+# Insertamos la celda al principio del Notebook
 nb['cells'].insert(0, {
     'cell_type': 'code',
     'execution_count': None,
@@ -71,14 +71,14 @@ nb['cells'].insert(0, {
 
 with open('procesaraudio.ipynb', 'w') as f:
     json.dump(nb, f)
-print("✅ Inyección completada.")
+print("✅ Secretos inyectados en el Notebook.")
 PYEOF
           
           # 3. Ejecutamos la inyección
           python inject_vars.py
           rm inject_vars.py
           
-          # 4. Creamos el metadata
+          # 4. Creamos el metadata SIN DOCKER (usando la imagen oficial de Kaggle)
           cat << 'EOF' > kernel-metadata.json
           {
             "id": "workercrema/procesaraudio",
