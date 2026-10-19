@@ -37,7 +37,7 @@ jobs:
           TMP_DATABASE_URL: ${{ secrets.DATABASE_URL }} # <-- EL NUEVO SECRETO
         run: |
           # 1. Buscamos el archivo dinámicamente
-          ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
+          ARCHIVO=$(find repo_codigo -name "procesaraudio.ipynb" | head -n 1)
           
           # 2. Inyección de variables
           echo "import os" > procesaraudio_final.py
