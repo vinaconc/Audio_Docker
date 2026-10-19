@@ -9,83 +9,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ 1. Clonar Repositorio de Infraestructura
+      - name: ⬇️ 1. Clonar Repositorio de Infraestructura (Audio_Docker)
         uses: actions/checkout@v4
 
-      - name: 🐍 2. Configurar Python
+      - name: 🐍 2. Configurar Python Ligero
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: 📦 3. Instalar la API de Kaggle
-        run: pip install --no-cache-dir kaggle
-
-      - name: Clonar Repositorio de Código (chord-analyzer)
+        run: |
+          pip install --no-cache-dir kaggle
+      - name: Clonar Repositorio de Codigo
         uses: actions/checkout@v4
         with:
           repository: vinaconc/chord-analyzer
           token: ${{ secrets.PAT_CHORD_ANALYZER }}
           path: repo_codigo
 
-      - name: Preparar Notebook e Inyectar Secretos
+      - name: Preparar Entorno para Kaggle
         env:
-          TMP_DB_USER: ${{ secrets.DB_USER }}
-          TMP_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          TMP_DB_HOST: ${{ secrets.DB_HOST }}
-          TMP_DB_NAME: ${{ secrets.DB_NAME }}
           TMP_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           TMP_R2_KEY: ${{ secrets.R2_ACCESS_KEY }}
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          TMP_TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TMP_TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
+          TMP_DATABASE_URL: ${{ secrets.DATABASE_URL }} # <-- EL NUEVO SECRETO
         run: |
-          # 1. Copiamos tu Notebook al directorio de trabajo
-          cp repo_codigo/setup_kaggle.ipynb ./procesaraudio.ipynb
+          # 1. Buscamos el archivo dinámicamente
+          ARCHIVO=$(find repo_codigo -name "procesaraudio.py" | head -n 1)
           
-          # 2. Inyectamos los secretos en la primera celda usando Python
-          cat << 'PYEOF' > inject_vars.py
-import json
-import os
-
-with open('procesaraudio.ipynb', 'r') as f:
-    nb = json.load(f)
-
-# Creamos la celda leyendo las variables del entorno de GitHub
-codigo_celda = "import os\n"
-variables = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_NAME", "GIT_TOKEN", "R2_ENDPOINT", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]
-
-for var in variables:
-    valor = os.environ.get(f"TMP_{var}", "")
-    codigo_celda += f"os.environ['{var}'] = '{valor}'\n"
-
-# Insertamos la celda al principio del Notebook
-nb['cells'].insert(0, {
-    'cell_type': 'code',
-    'execution_count': None,
-    'metadata': {},
-    'outputs': [],
-    'source': [codigo_celda]
-})
-
-with open('procesaraudio.ipynb', 'w') as f:
-    json.dump(nb, f)
-print("✅ Secretos inyectados en el Notebook.")
-PYEOF
+          # 2. Inyección de variables
+          echo "import os" > procesaraudio_final.py
           
-          # 3. Ejecutamos la inyección
-          python inject_vars.py
-          rm inject_vars.py
+          # 🔥 Inyectamos la URL completa de Neon
+          echo "os.environ['DATABASE_URL'] = '$TMP_DATABASE_URL'" >> procesaraudio_final.py
           
-          # 4. Creamos el metadata SIN DOCKER (usando la imagen oficial de Kaggle)
-          cat << 'EOF' > kernel-metadata.json
-          {
+          echo "archivo = '${{ github.event.client_payload.archivo }}'" >> procesaraudio_final.py
+          echo "r2_endpoint = '$TMP_R2_ENDPOINT'" >> procesaraudio_final.py
+          echo "r2_access_key = '$TMP_R2_KEY'" >> procesaraudio_final.py
+          echo "r2_secret_key = '$TMP_R2_SECRET'" >> procesaraudio_final.py
+          echo "r2_bucket = '$TMP_R2_BUCKET'" >> procesaraudio_final.py
+          echo "github_pat = '$TMP_GITHUB_PAT'" >> procesaraudio_final.py
+          
+          # 3. Ensamblamos el archivo final
+          cat "$ARCHIVO" >> procesaraudio_final.py
+          mv procesaraudio_final.py procesaraudio.py
+          
+          # 4. Metadata (Puedes dejar enable_gpu en false si no tienes cuota)
+          echo '{
             "id": "workercrema/procesaraudio",
             "title": "procesaraudio",
-            "code_file": "procesaraudio.ipynb",
+            "code_file": "procesaraudio.py",
             "language": "python",
-            "kernel_type": "notebook",
+            "kernel_type": "script",
             "is_private": true,
             "enable_gpu": true,
             "enable_internet": true,
@@ -93,11 +70,11 @@ PYEOF
             "dataset_sources": [],
             "kernel_sources": [],
             "competition_sources": [],
-            "image_type": "latest",
-            "image_id": ""
-          }
-          EOF
-
+            "image_type": "custom",
+            "image_id": "ghcr.io/vinaconc/audio_docker:latest"
+          }' > kernel-metadata.json
+      
+      
       - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
