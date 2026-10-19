@@ -1,4 +1,3 @@
-          # 🛠️ PLANO ACTUALIZADO PARA SCRIPT PURO (.py)
           cat << 'EOF' > kernel-metadata.json
           {
             "id": "workercrema/procesaraudio",
@@ -13,8 +12,7 @@
             "dataset_sources": [],
             "kernel_sources": [],
             "competition_sources": [],
-            "image_type": "custom",
-            "image_id": "ghcr.io/vinaconc/audio_docker:latest"
+            "image_type": "latest",
+            "image_id": ""
           }
           EOF
-
