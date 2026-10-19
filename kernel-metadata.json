@@ -1,10 +1,10 @@
-          cat << 'EOF' > kernel-metadata.json
+     cat << 'EOF' > kernel-metadata.json
           {
             "id": "workercrema/procesaraudio",
             "title": "procesaraudio",
-            "code_file": "procesaraudio.py",
+            "code_file": "procesaraudio.ipynb",
             "language": "python",
-            "kernel_type": "script",
+            "kernel_type": "notebook",
             "is_private": true,
             "enable_gpu": true,
             "enable_internet": true,
