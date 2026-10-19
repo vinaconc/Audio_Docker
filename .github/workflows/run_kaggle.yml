@@ -36,7 +36,7 @@ jobs:
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
         run: |
-          cp repo_codigo/setup_kaggle.ipynb ./procesaraudio.ipynb
+          cp repo_codigo/procesaraudio.ipynb ./procesaraudio.ipynb
           
           # Ejecutamos el script que creamos en el Paso 1
           python inject_vars.py
