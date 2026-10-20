@@ -60,6 +60,17 @@ jobs:
             "image_type": "latest",
             "image_id": ""
           }' > kernel-metadata.json
+      - name: 🚦 Marcar Kaggle como arrancando
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" <<'SQL'
+          INSERT INTO worker_status (worker_id, last_heartbeat, state)
+          VALUES ('kaggle-worker', NOW(), 'starting')
+          ON CONFLICT (worker_id)
+          DO UPDATE SET last_heartbeat = NOW(), state = 'starting';
+          SQL
+        
 
       - name: 🗄️ Crear job en Neon
         env:
