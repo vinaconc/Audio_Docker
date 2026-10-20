@@ -59,6 +59,21 @@ jobs:
             "image_id": ""
           }' > kernel-metadata.json
 
+      - name: 🗄️ Crear job en Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUDIO_KEY: ${{ github.event.client_payload.key }}
+        run: |
+          if [ -z "$AUDIO_KEY" ]; then
+            echo "::error::client_payload.key llegó vacío. Revisa lo que manda el Cloudflare Worker."
+            exit 1
+          fi
+          psql "$DATABASE_URL" -v url="upload://$AUDIO_KEY" <<'SQL'
+          INSERT INTO jobs (url, status, created_at)
+          VALUES (:'url', 'pending', NOW());
+          SQL
+
+
       - name: 🚀 5. Enviar Orden a Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
