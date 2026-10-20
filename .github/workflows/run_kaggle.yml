@@ -35,6 +35,8 @@ jobs:
           TMP_R2_SECRET: ${{ secrets.R2_SECRET_KEY }}
           TMP_R2_BUCKET: ${{ secrets.R2_BUCKET }}
           TMP_GITHUB_PAT: ${{ secrets.PAT_CHORD_ANALYZER }}
+          TMP_TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TMP_TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           cp repo_codigo/procesaraudio.ipynb ./procesaraudio.ipynb
           
