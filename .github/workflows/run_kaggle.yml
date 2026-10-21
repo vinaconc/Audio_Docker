@@ -89,7 +89,7 @@ jobs:
           SQL
 
 
-      - name: 🚀 5. Enviar Orden a Kaggle
+      - name: 🚀 5. Enviar Orden de Ejecución a la GPU de Kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
@@ -97,4 +97,21 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
+          
+          # 1. Consultamos el estado
+          STATUS=$(kaggle kernels status workercrema/procesaraudio 2>/dev/null || echo "idle")
+          echo "Estado actual de Kaggle: $STATUS"
+          
+          # 2. Si ya está encendido, ignoramos la petición
+          if echo "$STATUS" | grep -qiE "running|queued"; then
+            echo "✅ Kaggle ya está encendido. El audio se procesará en la cola actual."
+            exit 0
+          fi
+          
+          # 3. Si está apagado, lo encendemos
+          echo "🚀 Kaggle apagado. Enviando orden de encendido..."
           kaggle kernels push -p .
+          
+          # 🔥 4. EL TRUCO: Esperamos 60 segundos para que Kaggle pase a estado RUNNING
+          echo "⏳ Esperando 60 segundos para que Kaggle actualice su estado..."
+          sleep 60
