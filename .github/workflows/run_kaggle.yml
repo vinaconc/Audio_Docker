@@ -75,6 +75,7 @@ jobs:
         
 
       - name: 🗄️ Crear job en Neon
+        if: ${{ github.event.client_payload.job_id == null }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           AUDIO_KEY: ${{ github.event.client_payload.key }}
