@@ -22,6 +22,8 @@ vars_dict = {
     'R2_ACCESS_KEY': os.environ.get('TMP_R2_KEY', ''),
     'R2_SECRET_KEY': os.environ.get('TMP_R2_SECRET', ''),
     'R2_BUCKET': os.environ.get('TMP_R2_BUCKET', '')
+    'TELEGRAM_BOT_TOKEN': os.environ.get('TMP_TELEGRAM_BOT_TOKEN', ''),
+    'TELEGRAM_CHAT_ID': os.environ.get('TMP_TELEGRAM_CHAT_ID', ''),
 }
 
 # Creamos la celda con los secretos
