@@ -7,7 +7,9 @@ on:
 jobs:
   ensamblar-y-lanzar:
     runs-on: ubuntu-latest
-
+    concurrency:
+      group: kaggle-queue
+      cancel-in-progress: false # Si llega otro, espera a que termine el actual
     steps:
       - name: ⬇️ 1. Clonar Repositorio
         uses: actions/checkout@v4
